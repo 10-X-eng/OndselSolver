@@ -107,16 +107,11 @@ void GESpMatFullPv::backSubstituteIntoDU()
 
 	double sum, duij, duii{};
 	//answerX = rightHandSideB->copyEmpty();
-	assert(m == n);
-
-    // TODO: temp
-//    assert(n > 0);
-//    auto localLen = colOrder->numberOfElements();
-//    assert(n < localLen);
-
+	assert(m == n && n > 0);
 	answerX = std::make_shared<FullColumn<double>>(m);
-	auto jn = colOrder->at(n);
-	answerX->at(jn) = rightHandSideB->at(m) / matrixA->at(m)->at(jn);
+	const size_t last = n - 1;
+	auto jn = colOrder->at(last);
+	answerX->at(jn) = rightHandSideB->at(last) / matrixA->at(last)->at(jn);
 	//auto rhsZeroElement = this->rhsZeroElement();
 	for (ssize_t i = (ssize_t)n - 2; i >= 0; i--)	//Use ssize_t because of decrement
 	{
@@ -140,7 +135,7 @@ void GESpMatFullPv::backSubstituteIntoDU()
 
 void GESpMatFullPv::postSolve()
 {
-	throw SimulationStoppingError("To be implemented.");
+	// backSubstituteIntoDU() writes answers using the original column indexes.
 }
 
 void GESpMatFullPv::preSolvewithsaveOriginal(SpMatDsptr spMat, FColDsptr fullCol, bool saveOriginal)

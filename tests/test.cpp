@@ -1,6 +1,7 @@
 #include "pch.h"
 #include <CADSystem.h>
 #include <ASMTAssembly.h>
+#include <GESpMatFullPv.h>
 #include <GESpMatParPvPrecise.h>
 #include <MomentOfInertiaSolver.h>
 
@@ -147,6 +148,23 @@ TEST(OndselSolver, GESpMatParPvPrecise) {
 	GESpMatParPvPrecise::runSpMat();
 	EXPECT_TRUE(true);
 }
+TEST(OndselSolver, GESpMatFullPvBackSubstitutionUsesLastValidIndex) {
+	auto matrix = std::make_shared<SparseMatrix<double>>(2, 2);
+	matrix->atijput(0, 0, 2.0);
+	matrix->atijput(0, 1, 1.0);
+	matrix->atijput(1, 0, 1.0);
+	matrix->atijput(1, 1, 3.0);
+	auto rightHandSide = std::make_shared<FullColumn<double>>(2);
+	rightHandSide->atiput(0, 5.0);
+	rightHandSide->atiput(1, 7.0);
+
+	auto solver = std::make_shared<GESpMatFullPv>();
+	auto answer = solver->solvewithsaveOriginal(matrix, rightHandSide, true);
+
+	ASSERT_EQ(answer->size(), 2);
+	EXPECT_NEAR(answer->at(0), 1.6, 1.0e-12);
+	EXPECT_NEAR(answer->at(1), 1.8, 1.0e-12);
+}
 TEST(OndselSolver, MomentOfInertiaSolver) {
 	MomentOfInertiaSolver::example1();
 	EXPECT_TRUE(true);
@@ -169,4 +187,3 @@ TEST(OndselSolver, sharedptrTest) {
 	assert(&(assm->constantGravity) != &(assm2->constantGravity)); //Different shared_ptrs of same reference counter
 	EXPECT_TRUE(true);
 }
-
