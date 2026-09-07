@@ -82,11 +82,10 @@ void GESpMatFullPv::forwardEliminateWithPivot(size_t p)
 		}
 	}
 	auto bp = rightHandSideB->at(p);
-	for (size_t ii = 0; ii < markowitzPivotColCount; ii++)
-	{
+	forEachIndependentRow(markowitzPivotColCount, [&](size_t ii) {
 		auto i = rowPositionsOfNonZerosInPivotColumn->at(ii);
 		auto& spRowi = matrixA->at(i);
-		if (spRowi->find(jp) == spRowi->end()) continue;
+		if (spRowi->find(jp) == spRowi->end()) return;
 		auto aip = spRowi->at(jp);
 		spRowi->erase(jp);
 		auto factor = aip / app;
@@ -97,7 +96,7 @@ void GESpMatFullPv::forwardEliminateWithPivot(size_t p)
 			(*spRowi)[j] -= factor * apj;
 		}
 		rightHandSideB->at(i) -= bp * factor;
-	}
+	});
 }
 
 void GESpMatFullPv::backSubstituteIntoDU()
@@ -161,8 +160,7 @@ void GESpMatFullPv::preSolvewithsaveOriginal(SpMatDsptr spMat, FColDsptr fullCol
 	else {
 		rightHandSideB = fullCol;
 	}
-	for (size_t i = 0; i < m; i++)
-	{
+	forEachIndependentRow(m, [&](size_t i) {
 		auto& spRowi = spMat->at(i);
 		double maxRowMagnitude = spRowi->maxMagnitude();
 		if (maxRowMagnitude == 0) {
@@ -172,5 +170,5 @@ void GESpMatFullPv::preSolvewithsaveOriginal(SpMatDsptr spMat, FColDsptr fullCol
 		rowOrder->at(i) = i;
 		colOrder->at(i) = i;
 		positionsOfOriginalCols->at(i) = i;
-	}
+	});
 }

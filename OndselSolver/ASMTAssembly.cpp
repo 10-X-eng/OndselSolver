@@ -1341,7 +1341,13 @@ void MbD::ASMTAssembly::runPreDrag()
     }
     mbdSystem = std::make_shared<System>();
     mbdSystem->externalSystem->asmtAssembly = this;
+    mbdSystem->parallelExecutor = parallelExecutor;
     mbdSystem->runPreDrag(mbdSystem);
+}
+
+void MbD::ASMTAssembly::setParallelExecutor(ParallelExecutor executor)
+{
+    parallelExecutor = std::move(executor);
 }
 
 void MbD::ASMTAssembly::runDragStep(

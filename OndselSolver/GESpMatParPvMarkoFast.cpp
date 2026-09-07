@@ -30,15 +30,14 @@ void GESpMatParPvMarkoFast::preSolvewithsaveOriginal(SpMatDsptr spMat, FColDsptr
 	else {
 		rightHandSideB = fullCol;
 	}
-	for (size_t i = 0; i < m; i++)
-	{
+	forEachIndependentRow(m, [&](size_t i) {
 		auto& spRowi = spMat->at(i);
 		double maxRowMagnitude = spRowi->maxMagnitude();
 		if (maxRowMagnitude == 0) throwSingularMatrixError("");
 		auto scaling = 1.0 / maxRowMagnitude;
 		matrixA->at(i) = spRowi->timesconditionedWithTol(scaling, singularPivotTolerance);
 		rightHandSideB->atitimes(i, scaling);
-	}
+	});
 }
 
 void GESpMatParPvMarkoFast::doPivoting(size_t p)

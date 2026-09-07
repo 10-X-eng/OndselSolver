@@ -95,15 +95,14 @@ void GESpMatParPvPrecise::preSolvewithsaveOriginal(SpMatDsptr spMat, FColDsptr f
 	else {
 		rightHandSideB = fullCol;
 	}
-	for (size_t i = 0; i < m; i++)
-	{
+	forEachIndependentRow(m, [&](size_t i) {
 		auto& spRowi = spMat->at(i);
 		double maxRowMagnitude = spRowi->maxMagnitude();
 		if (maxRowMagnitude == 0) throwSingularMatrixError("preSolvewithsaveOriginal");
 		rowScalings->at(i) = 1.0 / maxRowMagnitude;
 		matrixA->at(i) = spRowi->conditionedWithTol(singularPivotTolerance * maxRowMagnitude);
 		rowOrder->at(i) = i;
-	}
+	});
 }
 
 void MbD::GESpMatParPvPrecise::runSpMat()

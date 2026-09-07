@@ -133,5 +133,6 @@ void PosICNewtonRaphson::lookForRedundantConstraints()
 	system->logString(str);
 	auto posICsolver = CREATE<GESpMatFullPvPosIC>::With();
 	posICsolver->system = this;
+	posICsolver->setParallelExecutor(system->system->parallelExecutor);
 	dx = posICsolver->solvewithsaveOriginal(pypx, y->negated(), false);
 }

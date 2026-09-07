@@ -1,7 +1,13 @@
 #include "pch.h"
+#include <atomic>
+#include <condition_variable>
+#include <future>
+#include <mutex>
+#include <thread>
 #include <CADSystem.h>
 #include <ASMTAssembly.h>
 #include <GESpMatFullPv.h>
+#include <GESpMatParPvMarkoFast.h>
 #include <GESpMatParPvPrecise.h>
 #include <MomentOfInertiaSolver.h>
 
@@ -164,6 +170,75 @@ TEST(OndselSolver, GESpMatFullPvBackSubstitutionUsesLastValidIndex) {
 	ASSERT_EQ(answer->size(), 2);
 	EXPECT_NEAR(answer->at(0), 1.6, 1.0e-12);
 	EXPECT_NEAR(answer->at(1), 1.8, 1.0e-12);
+}
+TEST(OndselSolver, SparseSolverParallelExecutorPreservesSolution) {
+	constexpr size_t dimension = 24;
+	auto matrix = std::make_shared<SparseMatrix<double>>(dimension, dimension);
+	auto rightHandSide = std::make_shared<FullColumn<double>>(dimension);
+	for (size_t row = 0; row < dimension; ++row) {
+		matrix->atijput(row, row, 4.0);
+		double value = 4.0 * static_cast<double>(row + 1);
+		if (row > 0) {
+			matrix->atijput(row, row - 1, -1.0);
+			value -= static_cast<double>(row);
+		}
+		if (row + 1 < dimension) {
+			matrix->atijput(row, row + 1, -1.0);
+			value -= static_cast<double>(row + 2);
+		}
+		rightHandSide->atiput(row, value);
+	}
+
+	std::atomic_size_t executorCalls {0};
+	std::atomic_size_t active {0};
+	std::atomic_size_t maximumActive {0};
+	auto solver = std::make_shared<GESpMatParPvMarkoFast>();
+	solver->setParallelExecutor(
+		[&](size_t count, const std::function<void(size_t)>& work) {
+			executorCalls.fetch_add(1, std::memory_order_relaxed);
+			std::mutex gateMutex;
+			std::condition_variable gateChanged;
+			size_t arrived = 0;
+			std::vector<std::future<void>> tasks;
+			tasks.reserve(count);
+			for (size_t index = 0; index < count; ++index) {
+				tasks.push_back(std::async(std::launch::async, [&, index] {
+					const auto now = active.fetch_add(1, std::memory_order_relaxed) + 1;
+					auto observed = maximumActive.load(std::memory_order_relaxed);
+					while (observed < now
+					       && !maximumActive.compare_exchange_weak(
+						   observed,
+						   now,
+						   std::memory_order_relaxed
+					       )) {}
+					{
+						std::unique_lock lock(gateMutex);
+						++arrived;
+						if (arrived == count) {
+							gateChanged.notify_all();
+						}
+						else {
+							gateChanged.wait(lock, [&] { return arrived == count; });
+						}
+					}
+					work(index);
+					active.fetch_sub(1, std::memory_order_relaxed);
+				}));
+			}
+			for (auto& task : tasks) {
+				task.get();
+			}
+		}
+	);
+
+	auto answer = solver->solvewithsaveOriginal(matrix, rightHandSide, true);
+
+	ASSERT_EQ(answer->size(), dimension);
+	for (size_t index = 0; index < dimension; ++index) {
+		EXPECT_NEAR(answer->at(index), static_cast<double>(index + 1), 1.0e-10);
+	}
+	EXPECT_GT(executorCalls.load(std::memory_order_relaxed), 0);
+	EXPECT_GT(maximumActive.load(std::memory_order_relaxed), 1);
 }
 TEST(OndselSolver, MomentOfInertiaSolver) {
 	MomentOfInertiaSolver::example1();
