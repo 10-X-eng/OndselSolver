@@ -279,7 +279,9 @@ TEST(OndselSolver, KinematicSimulationUsesHostExecutorAndPreservesEveryPose) {
 TEST(OndselSolver, KinematicSimulationHonorsCancellationBetweenFrames) {
 	auto assembly = ASMTAssembly::assemblyFromFile(std::string(TEST_DATA_PATH) + "/fourbar.asmt");
 	assembly->times->clear();
-	struct Cancelled {};
+	struct Cancelled : std::runtime_error {
+		Cancelled() : std::runtime_error("Host cancelled simulation") {}
+	};
 	size_t checks = 0;
 	assembly->setCancellationCheck([&] {
 		++checks;
