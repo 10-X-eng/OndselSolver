@@ -6,6 +6,7 @@
 #include <thread>
 #include <CADSystem.h>
 #include <ASMTAssembly.h>
+#include <ASMTPart.h>
 #include <GESpMatFullPv.h>
 #include <GESpMatParPvMarkoFast.h>
 #include <GESpMatParPvPrecise.h>
@@ -239,6 +240,41 @@ TEST(OndselSolver, SparseSolverParallelExecutorPreservesSolution) {
 	}
 	EXPECT_GT(executorCalls.load(std::memory_order_relaxed), 0);
 	EXPECT_GT(maximumActive.load(std::memory_order_relaxed), 1);
+}
+TEST(OndselSolver, KinematicSimulationUsesHostExecutorAndPreservesEveryPose) {
+	auto serial = ASMTAssembly::assemblyFromFile(std::string(TEST_DATA_PATH) + "/fourbar.asmt");
+	auto dispatched = ASMTAssembly::assemblyFromFile(std::string(TEST_DATA_PATH) + "/fourbar.asmt");
+	// This fixture contains historical timestamps. Exercise a fresh solve,
+	// as the host does, rather than appending to its stored time series.
+	serial->times->clear();
+	dispatched->times->clear();
+	size_t calls = 0;
+	dispatched->setParallelExecutor([&](size_t count, const ParallelIndexWork& work) {
+		++calls;
+		for (size_t index = 0; index < count; ++index) work(index);
+	});
+	serial->runKINEMATIC();
+	dispatched->runKINEMATIC();
+	EXPECT_GT(calls, 0);
+	ASSERT_GT(serial->numberOfFrames(), 2);
+	ASSERT_EQ(serial->numberOfFrames(), dispatched->numberOfFrames());
+	ASSERT_EQ(serial->parts->size(), dispatched->parts->size());
+	for (size_t frame = 0; frame < serial->numberOfFrames(); ++frame) {
+		for (size_t part = 0; part < serial->parts->size(); ++part) {
+			auto first = serial->parts->at(part);
+			auto second = dispatched->parts->at(part);
+			auto position = first->getPosition3D(frame);
+			auto otherPosition = second->getPosition3D(frame);
+			auto rotation = first->getRotationMatrix(frame);
+			auto otherRotation = second->getRotationMatrix(frame);
+			for (size_t row = 0; row < 3; ++row) {
+				EXPECT_NEAR(position->at(row), otherPosition->at(row), 1.0e-9);
+				for (size_t column = 0; column < 3; ++column) {
+					EXPECT_NEAR(rotation->at(row)->at(column), otherRotation->at(row)->at(column), 1.0e-9);
+				}
+			}
+		}
+	}
 }
 TEST(OndselSolver, MomentOfInertiaSolver) {
 	MomentOfInertiaSolver::example1();

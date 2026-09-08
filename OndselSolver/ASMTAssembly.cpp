@@ -381,7 +381,10 @@ std::shared_ptr<ASMTAssembly> MbD::ASMTAssembly::assemblyFromFile(const std::str
     [[maybe_unused]] bool bool1 = str == "freeCAD: 3D CAD with Motion Simulation  by  askoh.com";
     [[maybe_unused]] bool bool2 = str == "OndselSolver";
     assert(bool1 || bool2);
-    assert(assembly->readStringOffTop(lines) == "Assembly");
+    // Parsing must not be compiled out in release builds.
+    if (lines.empty() || assembly->readStringOffTop(lines) != "Assembly") {
+        throw std::invalid_argument("Expected an Assembly record.");
+    }
     assembly->setFilename(fileName);
     assembly->parseASMT(lines);
     return assembly;
@@ -1435,6 +1438,7 @@ void MbD::ASMTAssembly::runPostDrag()
     }
     mbdSystem = std::make_shared<System>();
     mbdSystem->externalSystem->asmtAssembly = this;
+    mbdSystem->parallelExecutor = parallelExecutor;
     mbdSystem->runPreDrag(mbdSystem);
 }
 
@@ -1449,6 +1453,7 @@ void MbD::ASMTAssembly::runKINEMATIC()
 {
     mbdSystem = std::make_shared<System>();
     mbdSystem->externalSystem->asmtAssembly = this;
+    mbdSystem->parallelExecutor = parallelExecutor;
     try {
         mbdSystem->runKINEMATIC(mbdSystem);
     }
