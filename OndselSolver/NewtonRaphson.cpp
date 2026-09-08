@@ -71,6 +71,7 @@ void NewtonRaphson::iterate()
 	yNorms->push_back(yNorm);
 
 	while (true) {
+		if (system && system->system) system->system->checkCancellation();
 		this->incrementIterNo();
 		this->fillPyPx();
 		this->solveEquations();

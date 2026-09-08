@@ -1345,12 +1345,18 @@ void MbD::ASMTAssembly::runPreDrag()
     mbdSystem = std::make_shared<System>();
     mbdSystem->externalSystem->asmtAssembly = this;
     mbdSystem->parallelExecutor = parallelExecutor;
+    mbdSystem->cancellationCheck = cancellationCheck;
     mbdSystem->runPreDrag(mbdSystem);
 }
 
 void MbD::ASMTAssembly::setParallelExecutor(ParallelExecutor executor)
 {
     parallelExecutor = std::move(executor);
+}
+
+void MbD::ASMTAssembly::setCancellationCheck(std::function<void()> check)
+{
+    cancellationCheck = std::move(check);
 }
 
 void MbD::ASMTAssembly::runDragStep(
@@ -1439,6 +1445,7 @@ void MbD::ASMTAssembly::runPostDrag()
     mbdSystem = std::make_shared<System>();
     mbdSystem->externalSystem->asmtAssembly = this;
     mbdSystem->parallelExecutor = parallelExecutor;
+    mbdSystem->cancellationCheck = cancellationCheck;
     mbdSystem->runPreDrag(mbdSystem);
 }
 
@@ -1454,6 +1461,7 @@ void MbD::ASMTAssembly::runKINEMATIC()
     mbdSystem = std::make_shared<System>();
     mbdSystem->externalSystem->asmtAssembly = this;
     mbdSystem->parallelExecutor = parallelExecutor;
+    mbdSystem->cancellationCheck = cancellationCheck;
     try {
         mbdSystem->runKINEMATIC(mbdSystem);
     }

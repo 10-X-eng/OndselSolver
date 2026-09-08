@@ -74,9 +74,11 @@ void MbD::System::addForceTorque(std::shared_ptr<ForceTorqueItem> forTor)
 
 void System::runKINEMATIC(std::shared_ptr<System> self)
 {
+	checkCancellation();
 	externalSystem->preMbDrun(self);
 	while (true)
 	{
+		checkCancellation();
 		initializeLocally();
 		initializeGlobally();
 		if (!hasChanged) break;

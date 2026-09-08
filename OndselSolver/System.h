@@ -86,5 +86,7 @@ namespace MbD {
 
 		std::shared_ptr<Time> time;
 		ParallelExecutor parallelExecutor;
+		std::function<void()> cancellationCheck;
+		void checkCancellation() const { if (cancellationCheck) cancellationCheck(); }
 	};
 }

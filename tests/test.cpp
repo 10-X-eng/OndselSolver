@@ -276,6 +276,19 @@ TEST(OndselSolver, KinematicSimulationUsesHostExecutorAndPreservesEveryPose) {
 		}
 	}
 }
+TEST(OndselSolver, KinematicSimulationHonorsCancellationBetweenFrames) {
+	auto assembly = ASMTAssembly::assemblyFromFile(std::string(TEST_DATA_PATH) + "/fourbar.asmt");
+	assembly->times->clear();
+	struct Cancelled {};
+	size_t checks = 0;
+	assembly->setCancellationCheck([&] {
+		++checks;
+		if (assembly->numberOfFrames() >= 3) throw Cancelled {};
+	});
+	EXPECT_THROW(assembly->runKINEMATIC(), Cancelled);
+	EXPECT_GT(checks, 0);
+	EXPECT_EQ(assembly->numberOfFrames(), 3);
+}
 TEST(OndselSolver, MomentOfInertiaSolver) {
 	MomentOfInertiaSolver::example1();
 	EXPECT_TRUE(true);
