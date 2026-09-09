@@ -27,8 +27,7 @@ void GESpMatParPv::forwardEliminateWithPivot(size_t p)
 		}
 	}
 	auto bp = rightHandSideB->at(p);
-	for (size_t ii = 0; ii < markowitzPivotColCount; ii++)
-	{
+	forEachIndependentRow(markowitzPivotColCount, [&](size_t ii) {
 		auto i = rowPositionsOfNonZerosInPivotColumn->at(ii);
 		auto& rowi = matrixA->at(i);
 		auto aip = rowi->at(p);
@@ -41,7 +40,7 @@ void GESpMatParPv::forwardEliminateWithPivot(size_t p)
 			(*rowi)[j] -= factor * apj;
 		}
 		rightHandSideB->at(i) -= bp * factor;
-	}
+	});
 }
 
 void GESpMatParPv::backSubstituteIntoDU()

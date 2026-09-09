@@ -82,11 +82,10 @@ void GESpMatFullPv::forwardEliminateWithPivot(size_t p)
 		}
 	}
 	auto bp = rightHandSideB->at(p);
-	for (size_t ii = 0; ii < markowitzPivotColCount; ii++)
-	{
+	forEachIndependentRow(markowitzPivotColCount, [&](size_t ii) {
 		auto i = rowPositionsOfNonZerosInPivotColumn->at(ii);
 		auto& spRowi = matrixA->at(i);
-		if (spRowi->find(jp) == spRowi->end()) continue;
+		if (spRowi->find(jp) == spRowi->end()) return;
 		auto aip = spRowi->at(jp);
 		spRowi->erase(jp);
 		auto factor = aip / app;
@@ -97,7 +96,7 @@ void GESpMatFullPv::forwardEliminateWithPivot(size_t p)
 			(*spRowi)[j] -= factor * apj;
 		}
 		rightHandSideB->at(i) -= bp * factor;
-	}
+	});
 }
 
 void GESpMatFullPv::backSubstituteIntoDU()
@@ -107,16 +106,11 @@ void GESpMatFullPv::backSubstituteIntoDU()
 
 	double sum, duij, duii{};
 	//answerX = rightHandSideB->copyEmpty();
-	assert(m == n);
-
-    // TODO: temp
-//    assert(n > 0);
-//    auto localLen = colOrder->numberOfElements();
-//    assert(n < localLen);
-
+	assert(m == n && n > 0);
 	answerX = std::make_shared<FullColumn<double>>(m);
-	auto jn = colOrder->at(n - 1);
-	answerX->at(jn) = rightHandSideB->at(m - 1) / matrixA->at(m - 1)->at(jn);
+	const size_t last = n - 1;
+	auto jn = colOrder->at(last);
+	answerX->at(jn) = rightHandSideB->at(last) / matrixA->at(last)->at(jn);
 	//auto rhsZeroElement = this->rhsZeroElement();
 	for (ssize_t i = (ssize_t)n - 2; i >= 0; i--)	//Use ssize_t because of decrement
 	{
@@ -140,7 +134,7 @@ void GESpMatFullPv::backSubstituteIntoDU()
 
 void GESpMatFullPv::postSolve()
 {
-	throw SimulationStoppingError("To be implemented.");
+	// backSubstituteIntoDU() writes answers using the original column indexes.
 }
 
 void GESpMatFullPv::preSolvewithsaveOriginal(SpMatDsptr spMat, FColDsptr fullCol, bool saveOriginal)
@@ -166,8 +160,7 @@ void GESpMatFullPv::preSolvewithsaveOriginal(SpMatDsptr spMat, FColDsptr fullCol
 	else {
 		rightHandSideB = fullCol;
 	}
-	for (size_t i = 0; i < m; i++)
-	{
+	forEachIndependentRow(m, [&](size_t i) {
 		auto& spRowi = spMat->at(i);
 		double maxRowMagnitude = spRowi->maxMagnitude();
 		if (maxRowMagnitude == 0) {
@@ -177,5 +170,5 @@ void GESpMatFullPv::preSolvewithsaveOriginal(SpMatDsptr spMat, FColDsptr fullCol
 		rowOrder->at(i) = i;
 		colOrder->at(i) = i;
 		positionsOfOriginalCols->at(i) = i;
-	}
+	});
 }

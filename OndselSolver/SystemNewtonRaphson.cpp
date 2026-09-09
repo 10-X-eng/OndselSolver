@@ -56,6 +56,7 @@ void SystemNewtonRaphson::calcdxNorm()
 
 void SystemNewtonRaphson::basicSolveEquations()
 {
+	matrixSolver->setParallelExecutor(system->system->parallelExecutor);
 	auto debug = false;
 	if (debug) {
 		outputSpreadsheet();

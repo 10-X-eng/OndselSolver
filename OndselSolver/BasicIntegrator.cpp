@@ -10,6 +10,7 @@
 #include "CREATE.h"
 #include "StableBackwardDifference.h"
 #include "IntegratorInterface.h"
+#include "SystemSolver.h"
 
 using namespace MbD;
 
@@ -159,5 +160,8 @@ double BasicIntegrator::tprevious()
 
 void BasicIntegrator::subsequentSteps()
 {
-	while (_continue) { this->nextStep(); }
+	while (_continue) {
+		system->system->system->checkCancellation();
+		this->nextStep();
+	}
 }

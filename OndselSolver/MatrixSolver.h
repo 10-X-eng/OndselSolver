@@ -13,6 +13,7 @@
 #include "FullMatrix.h"
 #include "FullColumn.h"
 #include "SparseMatrix.h"
+#include "ParallelExecutor.h"
 
 namespace MbD {
     class MatrixSolver : public Solver
@@ -39,6 +40,20 @@ namespace MbD {
 
         virtual void postSolve() = 0;
         virtual void findScalingsForRowRange(size_t begin, size_t end);
+        void setParallelExecutor(ParallelExecutor executor)
+        {
+            parallelExecutor = std::move(executor);
+        }
+        void forEachIndependentRow(size_t count, const ParallelIndexWork& work) const
+        {
+            if (parallelExecutor && count > 1) {
+                parallelExecutor(count, work);
+                return;
+            }
+            for (size_t index = 0; index < count; ++index) {
+                work(index);
+            }
+        }
         virtual double getmatrixArowimaxMagnitude(size_t i) = 0;
         void throwSingularMatrixError(const std::string& chars);
         void throwSingularMatrixError(const std::string& chars, std::shared_ptr<FullColumn<size_t>> redunEqnNos);
@@ -48,6 +63,6 @@ namespace MbD {
         std::shared_ptr<FullColumn<size_t>> rowOrder;
         std::shared_ptr<FullRow<size_t>> colOrder;
         double singularPivotTolerance = 0, millisecondsToRun = 0;
+		ParallelExecutor parallelExecutor;
     };
 }
-

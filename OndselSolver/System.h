@@ -22,6 +22,7 @@
 
 #include "Item.h"
 #include "LimitIJ.h"
+#include "ParallelExecutor.h"
 
 namespace MbD {
 	class Part;
@@ -84,5 +85,8 @@ namespace MbD {
 		std::shared_ptr<SystemSolver> systemSolver;
 
 		std::shared_ptr<Time> time;
+		ParallelExecutor parallelExecutor;
+		std::function<void()> cancellationCheck;
+		void checkCancellation() const { if (cancellationCheck) cancellationCheck(); }
 	};
 }

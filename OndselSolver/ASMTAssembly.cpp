@@ -381,7 +381,10 @@ std::shared_ptr<ASMTAssembly> MbD::ASMTAssembly::assemblyFromFile(const std::str
     [[maybe_unused]] bool bool1 = str == "freeCAD: 3D CAD with Motion Simulation  by  askoh.com";
     [[maybe_unused]] bool bool2 = str == "OndselSolver";
     assert(bool1 || bool2);
-    assert(assembly->readStringOffTop(lines) == "Assembly");
+    // Parsing must not be compiled out in release builds.
+    if (lines.empty() || assembly->readStringOffTop(lines) != "Assembly") {
+        throw std::invalid_argument("Expected an Assembly record.");
+    }
     assembly->setFilename(fileName);
     assembly->parseASMT(lines);
     return assembly;
@@ -1341,7 +1344,19 @@ void MbD::ASMTAssembly::runPreDrag()
     }
     mbdSystem = std::make_shared<System>();
     mbdSystem->externalSystem->asmtAssembly = this;
+    mbdSystem->parallelExecutor = parallelExecutor;
+    mbdSystem->cancellationCheck = cancellationCheck;
     mbdSystem->runPreDrag(mbdSystem);
+}
+
+void MbD::ASMTAssembly::setParallelExecutor(ParallelExecutor executor)
+{
+    parallelExecutor = std::move(executor);
+}
+
+void MbD::ASMTAssembly::setCancellationCheck(std::function<void()> check)
+{
+    cancellationCheck = std::move(check);
 }
 
 void MbD::ASMTAssembly::runDragStep(
@@ -1429,6 +1444,8 @@ void MbD::ASMTAssembly::runPostDrag()
     }
     mbdSystem = std::make_shared<System>();
     mbdSystem->externalSystem->asmtAssembly = this;
+    mbdSystem->parallelExecutor = parallelExecutor;
+    mbdSystem->cancellationCheck = cancellationCheck;
     mbdSystem->runPreDrag(mbdSystem);
 }
 
@@ -1443,6 +1460,8 @@ void MbD::ASMTAssembly::runKINEMATIC()
 {
     mbdSystem = std::make_shared<System>();
     mbdSystem->externalSystem->asmtAssembly = this;
+    mbdSystem->parallelExecutor = parallelExecutor;
+    mbdSystem->cancellationCheck = cancellationCheck;
     try {
         mbdSystem->runKINEMATIC(mbdSystem);
     }

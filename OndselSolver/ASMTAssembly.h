@@ -15,6 +15,7 @@
 #include "ASMTSimulationParameters.h"
 #include "ASMTAnimationParameters.h"
 #include "ASMTTime.h"
+#include "ParallelExecutor.h"
 #include "Units.h"
 
 namespace MbD {
@@ -135,6 +136,9 @@ namespace MbD {
 		void storeOnTimeSeries(std::ofstream& os) override;
 		void setFilename(const std::string& filename);
 		void setDebug(bool todebug);
+		void setParallelExecutor(ParallelExecutor executor);
+		// Called on the solver thread. Throw to cancel; capture no live host objects.
+		void setCancellationCheck(std::function<void()> check);
         void updateForFrame(size_t index) override;
 
 		std::string filename = "";
@@ -154,8 +158,9 @@ namespace MbD {
 		std::shared_ptr<Units> mbdUnits = std::make_shared<Units>();
 		std::shared_ptr<System> mbdSystem;
 		bool debug = false;
+		ParallelExecutor parallelExecutor;
+		std::function<void()> cancellationCheck;
         std::shared_ptr<ExternalSystem> externalSystem;
 
 	};
 }
-

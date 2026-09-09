@@ -561,6 +561,7 @@ set(ONDSELSOLVER_HEADERS
         OrbitAngleZIeqcJeqc.h
         Orientation.h
         ParallelAxesJoint.h
+        ParallelExecutor.h
         Part.h
         PartFrame.h
         PerpendicularJoint.h
